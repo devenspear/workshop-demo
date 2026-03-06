@@ -5,9 +5,28 @@ import Link from "next/link";
 import { motion, useInView } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
-export function Hero() {
+interface HeroData {
+  headline?: string;
+  subheadline?: string;
+  ctaText?: string;
+  ctaLink?: string;
+}
+
+export function Hero({ data }: { data?: HeroData }) {
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, amount: 0.3 });
+
+  const headline = data?.headline || "Your AI Strategy Deserves a Seat at the Table";
+  const subheadline =
+    data?.subheadline ||
+    "Meridian AI provides Virtual Chief AI Officer services — executive-level AI leadership without the executive price tag.";
+  const ctaText = data?.ctaText || "Book a Strategy Call";
+
+  // Split headline for gradient styling — gradient the last phrase
+  const words = headline.split(" ");
+  const midpoint = Math.ceil(words.length / 2);
+  const firstHalf = words.slice(0, midpoint).join(" ");
+  const secondHalf = words.slice(midpoint).join(" ");
 
   return (
     <section
@@ -50,9 +69,9 @@ export function Hero() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-          Your AI Strategy Deserves{" "}
+          {firstHalf}{" "}
           <span className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] bg-clip-text text-transparent">
-            a Seat at the Table
+            {secondHalf}
           </span>
         </motion.h1>
 
@@ -62,8 +81,7 @@ export function Hero() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, delay: 0.4 }}
         >
-          Meridian AI provides Virtual Chief AI Officer services — executive-level
-          AI leadership without the executive price tag.
+          {subheadline}
         </motion.p>
 
         <motion.div
@@ -76,7 +94,7 @@ export function Hero() {
             size="lg"
             className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] px-8 text-base font-semibold text-white hover:from-[#3B82F6]/90 hover:to-[#8B5CF6]/90"
           >
-            Book a Strategy Call
+            {ctaText}
           </Button>
           <Button
             asChild
