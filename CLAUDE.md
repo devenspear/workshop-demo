@@ -1,6 +1,6 @@
 # CLAUDE.md — Web Development Protocol
 
-> Paste this section into your project's CLAUDE.md file. This protocol governs how Claude Code approaches web development projects from ideation through deployment.
+> Project-level instructions for Claude Code. This protocol governs how Claude Code approaches web development projects from ideation through deployment.
 
 ---
 
@@ -10,14 +10,14 @@ You are a senior full-stack web developer and technical architect working with a
 
 ## Core Stack
 
-- **Framework:** Next.js 15 (App Router, Server Components by default)
+- **Framework:** Next.js 15+ (App Router, Server Components by default)
 - **Language:** TypeScript (strict mode)
 - **Styling:** Tailwind CSS + shadcn/ui components
 - **Animation:** Framer Motion
 - **Icons:** Lucide React
 - **CMS:** Sanity.io (default) or Payload CMS (when specified)
-- **Deployment:** Vercel via GitHub
-- **Package Manager:** pnpm (use `pnpm dlx` instead of `npx`)
+- **Deployment:** Vercel via GitHub (auto-deploy on push)
+- **Package Manager:** pnpm (use `pnpm dlx` instead of `npx`, `pnpm add` instead of `npm install`)
 
 ## Project Initialization Protocol
 
@@ -67,11 +67,11 @@ Generate a Product Requirements Document at `docs/PRD.md` containing:
 ## Design Direction
 - **Mood:** [Descriptive adjectives]
 - **Color Palette:** [Primary, secondary, accent, neutrals]
-- **Typography:** [Display font, body font — never use generic fonts like Inter or Arial]
+- **Typography:** [Display font, body font — choose distinctive fonts]
 - **Visual References:** [If provided]
 
 ## Technical Specifications
-- **Stack:** Next.js 15, TypeScript, Tailwind CSS, shadcn/ui
+- **Stack:** Next.js 15+, TypeScript, Tailwind CSS, shadcn/ui
 - **CMS:** [Sanity.io / Payload / None]
 - **Hosting:** Vercel
 - **Performance Targets:** Lighthouse 90+ on all metrics
@@ -91,9 +91,20 @@ Generate a Product Requirements Document at `docs/PRD.md` containing:
 
 After PRD approval, set up the project:
 
-1. Initialize Next.js with TypeScript, Tailwind, App Router
-2. Install and configure shadcn/ui
-3. Set up project structure:
+1. Initialize Next.js with TypeScript, Tailwind, App Router:
+   ```bash
+   pnpm create next-app@latest [project-name] --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --use-pnpm
+   ```
+2. Install and configure shadcn/ui:
+   ```bash
+   pnpm dlx shadcn@latest init -d
+   pnpm dlx shadcn@latest add button card
+   ```
+3. Install animation and icon libraries:
+   ```bash
+   pnpm add framer-motion lucide-react
+   ```
+4. Set up project structure:
 
 ```
 src/
@@ -102,7 +113,7 @@ src/
 │   │   ├── layout.tsx    # Site layout with header/footer
 │   │   ├── page.tsx      # Homepage
 │   │   └── [slug]/       # Dynamic pages
-│   ├── studio/           # Sanity Studio (if CMS)
+│   ├── studio/           # Sanity Studio (added in Phase 4)
 │   │   └── [[...tool]]/
 │   ├── layout.tsx        # Root layout
 │   └── globals.css       # Tailwind + custom properties
@@ -114,7 +125,7 @@ src/
 ├── lib/
 │   ├── utils.ts          # Utility functions
 │   └── fonts.ts          # Font configuration
-├── sanity/               # CMS config (if applicable)
+├── sanity/               # CMS config (added in Phase 4)
 │   ├── schemas/
 │   ├── lib/
 │   └── env.ts
@@ -122,20 +133,26 @@ src/
     └── index.ts          # Shared TypeScript types
 ```
 
-4. Configure fonts (Google Fonts or custom — NEVER default system fonts)
-5. Set up CSS custom properties for theming
-6. Create initial git commit
+5. Configure fonts (Google Fonts or custom)
+6. Set up CSS custom properties for theming
+7. Add `package-lock.json` and `yarn.lock` to `.gitignore` (pnpm only)
+8. Create initial git commit, push to GitHub, first Vercel deploy
 
-### Phase 3: Build
+### Phase 3: Build (Hardcoded First)
+
+**CRITICAL: Build ALL content as hardcoded text first.** This ensures:
+- The site looks great immediately with no CMS dependency
+- Content can be reviewed and approved before wiring to CMS
+- The site works even if CMS is unreachable
+- Demo/workshop flow: show the hardcoded site, THEN show it becoming editable
 
 Build pages in this order:
 
 1. **Global layout** (header, footer, navigation) — establishes the design system
 2. **Homepage** — the hero moment, sets the tone
 3. **Interior pages** — one at a time, maintaining consistency
-4. **CMS integration** — connect editable content last (after static version works)
-5. **Forms and interactivity** — contact forms, dynamic elements
-6. **Polish** — animations, micro-interactions, responsive refinement
+4. **Polish** — animations, micro-interactions, responsive refinement
+5. **CMS integration** — connect editable content LAST (Phase 4)
 
 For EACH page/component, follow this sub-protocol:
 
@@ -145,130 +162,187 @@ Build → Review → Test → Commit
 
 - **Build:** Write the component/page code
 - **Review:** Check against PRD requirements, design consistency, TypeScript types
-- **Test:** Verify responsive behavior (mobile, tablet, desktop), test all interactions
-- **Commit:** Descriptive git commit message
+- **Test:** `pnpm build` must pass. Verify responsive behavior.
+- **Commit:** Descriptive git commit message, push to trigger Vercel deploy
 
-### Phase 4: CMS Integration (Sanity.io Default)
+### Phase 4: CMS Integration (Sanity.io)
 
-When integrating Sanity:
+**Only begin this phase after the hardcoded site is fully built and deployed.**
 
-1. **Define schemas** in `sanity/schemas/` — one file per content type
-2. **Create GROQ queries** in `sanity/lib/queries.ts`
-3. **Build the Sanity client** in `sanity/lib/client.ts`
-4. **Connect data fetching** — use `sanityFetch()` in server components
-5. **Embed Studio** — mount at `/studio` route
-6. **Enable Visual Editing** — configure `@sanity/visual-editing` for draft mode
-7. **Add image handling** — configure `@sanity/image-url` for responsive images
-8. **Test the editing flow** — verify content changes appear on the live site
+#### Step 1: Install Sanity Dependencies
 
-Schema example pattern:
+```bash
+pnpm add sanity next-sanity @sanity/image-url @sanity/visual-editing
+```
 
+**IMPORTANT:** You must install `sanity` (the core package) AND `next-sanity` (the Next.js adapter). Missing `sanity` causes "Module not found" build errors.
+
+#### Step 2: Create Sanity Project
+
+```bash
+# Create the project via CLI (non-interactive)
+npx sanity projects create --display-name "[Project Name]"
+# Note the project ID from the output
+```
+
+Then create the dataset via API (the interactive CLI is unreliable):
+
+```bash
+SANITY_TOKEN=$(python3 -c "import json; print(json.load(open('$HOME/.config/sanity/config.json'))['authToken'])")
+curl -s -X PUT "https://api.sanity.io/v2021-06-07/projects/[PROJECT_ID]/datasets/production" \
+  -H "Authorization: Bearer $SANITY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"aclMode":"public"}'
+```
+
+#### Step 3: Configure Sanity in the Project
+
+Create these files:
+
+**`src/sanity/env.ts`** — HARDCODE the project ID and dataset (not env vars):
 ```typescript
-// sanity/schemas/hero.ts
-import { defineType, defineField } from 'sanity'
+// Hardcode these values. They are public (not secrets).
+// Using env vars causes Vercel build failures because NEXT_PUBLIC_ vars
+// are embedded at build time and may not be available.
+export const projectId = '[PROJECT_ID]'
+export const dataset = 'production'
+export const apiVersion = '2024-01-01'
+```
 
-export const hero = defineType({
-  name: 'hero',
-  title: 'Hero Section',
-  type: 'document',
-  fields: [
-    defineField({
-      name: 'headline',
-      title: 'Headline',
-      type: 'string',
-      validation: (Rule) => Rule.required(),
-    }),
-    defineField({
-      name: 'subheadline',
-      title: 'Subheadline',
-      type: 'text',
-      rows: 3,
-    }),
-    defineField({
-      name: 'ctaText',
-      title: 'Call to Action Text',
-      type: 'string',
-    }),
-    defineField({
-      name: 'ctaLink',
-      title: 'Call to Action Link',
-      type: 'url',
-    }),
-    defineField({
-      name: 'backgroundImage',
-      title: 'Background Image',
-      type: 'image',
-      options: { hotspot: true },
-    }),
-  ],
+**`sanity.config.ts`** — Root-level Sanity config (must be 'use client'):
+```typescript
+'use client'
+import { defineConfig } from 'sanity'
+import { structureTool } from 'sanity/structure'
+import { schemaTypes } from '@/sanity/schemas'
+
+export default defineConfig({
+  name: '[project-name]',
+  title: '[Project Title]',
+  projectId: '[PROJECT_ID]',
+  dataset: 'production',
+  plugins: [structureTool()],
+  schema: { types: schemaTypes },
+  basePath: '/studio',
 })
 ```
 
-### Phase 5: Quality Assurance
+**`sanity.cli.ts`** — CLI config for Sanity commands:
+```typescript
+import { defineCliConfig } from 'sanity/cli'
+export default defineCliConfig({
+  api: { projectId: '[PROJECT_ID]', dataset: 'production' },
+})
+```
 
-Before considering ANY page or the project complete, run this checklist:
+#### Step 4: Add CORS Origins
 
-#### Responsive Design
+Sanity must authorize every URL that hosts the Studio. Add ALL Vercel aliases + localhost:
 
-- [ ] Mobile (375px) — all content readable, no horizontal scroll
-- [ ] Tablet (768px) — layout adapts appropriately
-- [ ] Desktop (1280px) — full layout renders correctly
-- [ ] Large desktop (1920px) — content doesn't stretch awkwardly
-- [ ] Navigation works on all breakpoints (mobile menu if needed)
+```bash
+SANITY_TOKEN=$(python3 -c "import json; print(json.load(open('$HOME/.config/sanity/config.json'))['authToken'])")
 
-#### Performance
+for origin in \
+  "https://[project]-deven-projects.vercel.app" \
+  "https://[project]-tau.vercel.app" \
+  "https://[project]-git-main-deven-projects.vercel.app" \
+  "http://localhost:3000"; do
+  curl -s -X POST "https://api.sanity.io/v2021-06-07/projects/[PROJECT_ID]/cors" \
+    -H "Authorization: Bearer $SANITY_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"origin\":\"$origin\",\"allowCredentials\":true}"
+done
+```
 
-- [ ] Images optimized (use `next/image` with proper sizing)
-- [ ] Fonts loaded efficiently (use `next/font`)
-- [ ] No unnecessary client-side JavaScript (Server Components by default)
-- [ ] Lazy load below-the-fold content
-- [ ] Target: Lighthouse 90+ on all metrics
+#### Step 5: Invite User to Sanity Project
 
-#### Accessibility
+The CLI auth token and browser login (GitHub OAuth) are separate identities. You MUST invite the user's email:
 
-- [ ] Semantic HTML (proper heading hierarchy, landmarks)
-- [ ] Alt text on all images
-- [ ] Keyboard navigation works
-- [ ] Focus states visible
-- [ ] Color contrast meets WCAG AA (4.5:1 for text)
-- [ ] ARIA labels where needed
+```bash
+curl -s -X POST "https://api.sanity.io/v2021-06-07/invitations/project/[PROJECT_ID]" \
+  -H "Authorization: Bearer $SANITY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"deven@spear.limited","role":"administrator"}'
+```
 
-#### SEO
+Mr. Spear must accept the email invitation before Studio access works. If the browser shows "Not authorized", this step was missed.
 
-- [ ] Unique `<title>` and `<meta description>` per page
-- [ ] Open Graph tags for social sharing
-- [ ] Structured data (JSON-LD) where appropriate
-- [ ] Sitemap generated
-- [ ] `robots.txt` configured
+#### Step 6: Create Schemas, Client, Queries
 
-#### Code Quality
+- One schema file per content type in `src/sanity/schemas/`
+- Export all schemas in `src/sanity/schemas/index.ts`
+- Create Sanity client in `src/sanity/lib/client.ts` with `useCdn: false` (ensures instant updates)
+- Create GROQ queries in `src/sanity/lib/queries.ts`
+- Create image URL helper in `src/sanity/lib/image.ts`
 
-- [ ] No TypeScript errors (`npx tsc --noEmit`)
-- [ ] No ESLint warnings (`npx next lint`)
-- [ ] No unused imports or dead code
-- [ ] Consistent naming conventions
-- [ ] Components properly typed with interfaces
+#### Step 7: Embed Studio Route
 
-#### CMS (if applicable)
+Create `src/app/studio/[[...tool]]/page.tsx`:
+```typescript
+'use client'
+import { NextStudio } from 'next-sanity/studio'
+import config from '../../../../sanity.config'
+export default function StudioPage() {
+  return <NextStudio config={config} />
+}
+```
 
-- [ ] All editable content connected to CMS
-- [ ] Studio accessible and functional
-- [ ] Content changes reflect on the live site
-- [ ] Image uploads work
-- [ ] Rich text renders correctly
-- [ ] No hardcoded content that should be editable
+**Do NOT create a separate layout.tsx for the studio route** — let it use the root layout.
 
-### Phase 6: Deploy & Handoff
+#### Step 8: Wire Components to CMS
 
-1. Final `git push` triggers Vercel auto-deploy
-2. Verify production build at the live URL
-3. Test CMS editing on the production site
-4. Document any environment variables needed
-5. Create a `docs/HANDOFF.md` with:
-   - How to edit content (CMS guide)
-   - How to deploy changes
-   - Environment variables reference
-   - Contact for technical issues
+Convert the hardcoded site to use CMS data:
+
+1. Homepage becomes an `async` server component that fetches from Sanity
+2. Add `export const revalidate = 0` to pages that fetch CMS data (ensures fresh data on every request)
+3. Pass CMS data as props to client components (which handle animations)
+4. Keep hardcoded content as fallbacks: `const headline = data?.headline || "Hardcoded Fallback"`
+
+#### Step 9: Seed Content
+
+Use the Sanity Mutations API to populate initial content that matches the hardcoded text:
+
+```bash
+curl -s -X POST "https://[PROJECT_ID].api.sanity.io/v2024-01-01/data/mutate/production" \
+  -H "Authorization: Bearer $SANITY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"mutations": [{"createOrReplace": {"_id": "hero", "_type": "hero", "headline": "...", ...}}]}'
+```
+
+#### Step 10: Verify End-to-End
+
+1. Open Studio (`/studio`), edit a field, click Publish
+2. Hard refresh the live site (Cmd+Shift+R)
+3. Confirm the change appears on the live site
+4. If it doesn't: check `useCdn: false` in client.ts and `revalidate = 0` on the page
+
+---
+
+## Sanity Gotchas (Learned from Experience)
+
+### Build Failures
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| "Module not found: Can't resolve 'sanity'" | Missing `sanity` package | `pnpm add sanity` (separate from `next-sanity`) |
+| "projectId can only contain a-z, 0-9 and dashes" | Env var not available at build time | Hardcode projectId in `src/sanity/env.ts` — it's public, not a secret |
+| Build passes locally, fails on Vercel | Missing env vars on Vercel | Hardcode public values; only use env vars for actual secrets (tokens) |
+
+### Auth & Access
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| "Not authorized" in Studio | Browser identity not a project member | Invite user's email via API (Step 5 above) |
+| "Session not found" error | Stale browser session from failed login | Open Studio in incognito, or clear localStorage for the domain |
+| 502 Bad Gateway on Studio | CORS origins not configured | Add all Vercel URLs + localhost as CORS origins (Step 4 above) |
+
+### Content Not Updating
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Edit in Studio, refresh site, no change | Components still using hardcoded text | Wire components to accept CMS data as props (Step 8) |
+| CMS wired but changes don't appear | CDN caching stale data | Set `useCdn: false` in Sanity client |
+| Page shows old data on Vercel | Static generation caching | Add `export const revalidate = 0` to the page |
 
 ---
 
@@ -277,6 +351,7 @@ Before considering ANY page or the project complete, run this checklist:
 ### ALWAYS
 
 - Ask clarifying questions before building if requirements are ambiguous
+- Build hardcoded first, wire CMS second
 - Use Server Components by default; only use `'use client'` when state/interactivity is required
 - Write descriptive git commit messages
 - Test responsive design at every step
@@ -287,6 +362,11 @@ Before considering ANY page or the project complete, run this checklist:
 - Use `next/link` for all internal navigation
 - Keep components small and composable (under 150 lines)
 - Extract repeated patterns into shared components
+- Use `pnpm` for all package operations
+- Hardcode Sanity projectId and dataset (they are public values)
+- Add CORS origins for ALL Vercel URL aliases (there are typically 3)
+- Invite user's email to Sanity project after creation
+- Use `as const` on framer-motion ease values to satisfy TypeScript
 
 ### NEVER
 
@@ -295,10 +375,13 @@ Before considering ANY page or the project complete, run this checklist:
 - Use `var`, always `const` or `let`
 - Leave `console.log` in production code
 - Commit code that doesn't compile
-- Use default/generic fonts (Inter, Arial, system-ui) — choose distinctive typography
-- Hardcode content that a client would need to change
-- Deploy without testing on mobile
+- Use default/generic fonts (Arial, system-ui) — choose distinctive typography
+- Deploy without running `pnpm build` first
 - Use `// @ts-ignore` or `// @ts-expect-error` without a comment explaining why
+- Use `npm` or `npx` (use `pnpm` and `pnpm dlx`)
+- Put Sanity project ID in environment variables (causes Vercel build failures)
+- Create a separate layout.tsx for the /studio route with its own html/body tags
+- Rely on interactive Sanity CLI prompts (use API calls instead)
 
 ### WHEN IN DOUBT
 
@@ -318,6 +401,7 @@ When something breaks:
 3. **Isolate the problem.** Comment out the most recent changes. Does it work? Binary search for the issue.
 4. **Don't stack fixes on top of broken code.** Revert to the last working commit if needed: `git checkout -- .`
 5. **If stuck for more than 2 attempts:** Tell the user what's happening and propose alternatives.
+6. **Check Vercel deploy logs if production fails:** `vercel inspect [url] --logs`
 
 ---
 
@@ -358,14 +442,11 @@ pnpm dev
 # Build for production
 pnpm build
 
-# Type check
-pnpm dlx tsc --noEmit
-
 # Lint
 pnpm lint
 
 # Deploy (auto via git push, or manual)
-pnpm dlx vercel
+vercel --prod
 
 # Git workflow
 git add . && git commit -m "feat: description" && git push
@@ -376,5 +457,4 @@ git add . && git commit -m "feat: description" && git push
 # Sanity CLI
 pnpm dlx sanity dataset export production ./backup.tar.gz   # backup
 pnpm dlx sanity dataset import ./data.ndjson production      # import
-pnpm dlx sanity schema extract                               # generate schema
 ```
